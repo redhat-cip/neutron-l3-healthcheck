@@ -3,10 +3,9 @@
 :License: Apache
 :Version: 0.1
 
-====================
+======================
 neutron-l3-healthcheck
-
-====================
+======================
 
 Check L3 agents and reschedule routers if an agent is down.
 
