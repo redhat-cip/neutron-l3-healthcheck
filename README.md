@@ -19,6 +19,7 @@ Configuration
 
 Create and edit /etc/neutron/l3_healthcheck.ini:
 
+----
  [DEFAULT]
  verbose = True
  debug = True           
@@ -28,7 +29,7 @@ Create and edit /etc/neutron/l3_healthcheck.ini:
  rpc_backend = neutron.openstack.common.rpc.impl_kombu
  [database]
  connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
-
+----
 
 Test it!
 ========
