@@ -13,7 +13,8 @@ Check L3 agents and reschedule routers if an agent is down.
 *******
 Install
 *******
-1. Install the script on the node you want. This one should have access to RPC & MySQL
+1. Install the script on the node you want. This one should have access to RPC & MySQL. At this time, the script has
+not a distributed lock, that's why you should run it once to avoid agent errors.
 ::
 
 2. Configure /etc/neutron/l3_healthcheck.ini file:
