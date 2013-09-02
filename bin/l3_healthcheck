@@ -15,11 +15,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import eventlet
 from sqlalchemy.orm import joinedload
+import eventlet
+
+from oslo.config import cfg
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api as l3_rpc
 from neutron.common import constants
+from neutron.common import topics
 from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.db import agentschedulers_db
@@ -31,75 +34,81 @@ from neutron.openstack.common import service
 from neutron.openstack.common import log as logging
 from neutron.plugins.openvswitch import ovs_db_v2
 from neutron.scheduler import l3_agent_scheduler
-from oslo.config import cfg
+from neutron.plugins.openvswitch import ovs_neutron_plugin
+from neutron.openstack.common.rpc import proxy
 
 LOG = logging.getLogger(__name__)
 
+class L3AgentNotifyRescheduled(proxy.RpcProxy):
+    """API for plugin to notify L3 agent."""
+    BASE_RPC_API_VERSION = '1.0'
 
-class Manager(periodic_task.PeriodicTasks,
-              db_base_plugin_v2.CommonDbMixin,
-              l3_agent_scheduler.ChanceScheduler,
-              l3_db.L3_NAT_db_mixin,
-              agentschedulers_db.L3AgentSchedulerDbMixin):
-    RPC_API_VERSION = '1.0'
+    def __init__(self, topic=topics.L3_AGENT):
+        super(L3AgentNotifyRescheduled, self).__init__(
+            topic=topic, default_version=self.BASE_RPC_API_VERSION)
 
-    _dict_extend_functions = {}
+    def _notification(self, context, method, router_ids, operation, data):
+        """Notify all the agents that are hosting the routers."""
+        self.fanout_cast(
+            context, self.make_msg(method,
+                                   routers=router_ids),
+            topic=topics.L3_AGENT)
 
-    def __init__(self, host=None):
-        self.host = host
+    def routers_updated(self, context, router_ids, operation=None, data=None):
+        if router_ids:
+            self._notification(context, 'routers_updated', router_ids,
+                               operation, data)
+
+
+class L3Rescheduler(db_base_plugin_v2.NeutronDbPluginV2,
+                   l3_agent_scheduler.ChanceScheduler,
+                   l3_db.L3_NAT_db_mixin,
+                   agentschedulers_db.L3AgentSchedulerDbMixin):
+
+    def __init__(self):
         self.context = n_context.get_admin_context()
-        super(Manager, self).__init__()
+        self.notifier = ovs_neutron_plugin.AgentNotifierApi(topics.AGENT)
+        self.router_notifier = L3AgentNotifyRescheduled()
 
-    @periodic_task.periodic_task
-    def healcheck(self, context):
-        LOG.info("Healthcheck")
+    def healthcheck(self, context):
         agents = self.get_agents(self.context)
         for agent in agents:
-            """ 
-            self.update_agent(self.context, agent['id'],
-                              {'agent': {'admin_state_up':
-                                         True}})
-            continue
-            """
+            if (agent['agent_type'] == constants.AGENT_TYPE_L3 and
+                    agent['admin_state_up'] == True):
 
-            import pdb
-            pdb.set_trace()
-            if (agent['agent_type'] == constants.AGENT_TYPE_L3):# and
-                    #agent['admin_state_up'] == True):
                 if agents_db.AgentDbMixin.is_agent_down(
                         agent['heartbeat_timestamp']):
-                    LOG.error("XXX WTF: %s before %s", 
+                    LOG.error("L3 Healthcheck: %s before %s", 
                               agent['host'], agent['admin_state_up'])
 
-                    """
                     self.update_agent(self.context, agent['id'],
                                       {'agent': {'admin_state_up':
                                                  False}})
-                    """
 
-                    LOG.debug("XXX WTF: %s after %s", agent['host'], False)
+                    LOG.debug("L3 healthcheck: %s after %s", 
+                              agent['host'], False)
 
                     routers = self.list_routers_on_l3_agent(self.context,
                                                             agent['id'])
-                                                     
+
                     for router in routers['routers']:
-                    	LOG.debug("XXX remove router %s from agent %s",
+                    	LOG.debug("L3 healthcheck: remove router %s "
+                                  "from agent %s",
                                   router['id'], agent['id'])
 
-#                    	self.remove_router_from_l3_agent(self.context,
-#                                                         agent['id'],
-#                                                         router['id'])
-
-			router_db = router = self._get_router(self.context,
-							      router['id'])
- 
-                        import pdb
-                        pdb.set_trace()
-			binding = ovs_db_v2.get_network_binding(
-				None, router_db.gw_port.network_id)
-
                         self.schedule(self, self.context, router['id'])
-                    	LOG.debug("XXX router %s rescheduled", router['id'])
+                    	LOG.debug("L3 healthcheck: router %s rescheduled", 
+                                  router['id'])
+
+                    	self.remove_router_from_l3_agent(self.context,
+                                                         agent['id'],
+                                                         router['id'])
+
+                    	LOG.debug("L3 healthcheck: notify l3 agent router "
+                                  "%s updated", router['id'])
+
+                        self.router_notifier.routers_updated(self.context, 
+                                                             [router['id']]) 
 
                     l3_rpc.L3AgentNotify.agent_updated(self.context, 
                                                        True, agent['host'])
@@ -129,10 +138,19 @@ class Manager(periodic_task.PeriodicTasks,
 
         return l3_agents
 
-    def _get_marker_obj(self, context, resource, limit, marker):
-        if limit and marker:
-            return getattr(self, '_get_%s' % resource)(context, marker)
-        return None
+
+class Manager(periodic_task.PeriodicTasks):
+    RPC_API_VERSION = '1.0'
+
+    def __init__(self, host=None):
+        self.host = host
+        self.l3rescheduler = L3Rescheduler()
+        super(Manager, self).__init__()
+
+    @periodic_task.periodic_task
+    def healcheck(self, context):
+        LOG.info("Healthcheck")
+        self.l3rescheduler.healthcheck(context)
 
 
 class L3healthcheckManager(Manager):
@@ -184,3 +202,16 @@ if __name__ == "__main__":
     cfg.CONF.register_opts(L3healthcheck.OPTS)
     logging.setup(product_name)
     main()
+
+from neutron.common import constants
+from neutron.common import topics
+from neutron.common import utils
+from neutron import manager
+from neutron.openstack.common import log as logging
+from neutron.openstack.common.rpc import proxy
+
+
+LOG = logging.getLogger(__name__)
+
+
+L3AgentNotify = L3AgentNotifyAPI()
