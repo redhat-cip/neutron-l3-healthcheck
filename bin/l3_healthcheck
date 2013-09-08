@@ -23,22 +23,22 @@ import sqlalchemy as sa
 
 from oslo.config import cfg
 
-from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api as l3_rpc
-from neutron.common import constants
-from neutron.common import topics
-from neutron import context as n_context
-from neutron.db import agentschedulers_db
-from neutron.db import agents_db
-from neutron.db import api as db_api
-from neutron.db import db_base_plugin_v2
-from neutron.db import l3_db
-from neutron.db import model_base
-from neutron.openstack.common import log as logging
-from neutron.openstack.common import periodic_task
-from neutron.openstack.common.rpc import proxy
-from neutron.openstack.common import service
-from neutron.openstack.common import timeutils
-from neutron.scheduler import l3_agent_scheduler
+from quantum.api.rpc.agentnotifiers import l3_rpc_agent_api as l3_rpc
+from quantum.common import constants
+from quantum.common import topics
+from quantum import context as n_context
+from quantum.db import agentschedulers_db
+from quantum.db import agents_db
+from quantum.db import api as db_api
+from quantum.db import db_base_plugin_v2
+from quantum.db import l3_db
+from quantum.db import model_base
+from quantum.openstack.common import log as logging
+from quantum.openstack.common import periodic_task
+from quantum.openstack.common.rpc import proxy
+from quantum.openstack.common import service
+from quantum.openstack.common import timeutils
+from quantum.scheduler import l3_agent_scheduler
 
 LOG = logging.getLogger(__name__)
 
