@@ -16,6 +16,7 @@
 # under the License.
 
 import eventlet
+import socket
 
 from oslo.config import cfg
 
@@ -27,10 +28,11 @@ from neutron.db import agents_db
 from neutron.db import agentschedulers_db
 from neutron.db import db_base_plugin_v2
 from neutron.db import l3_db
-from neutron.openstack.common.rpc import service as rpc_service
-from neutron.openstack.common import periodic_task
-from neutron.openstack.common import service
+from neutron.openstack.common import lockutils
 from neutron.openstack.common import log as logging
+from neutron.openstack.common import periodic_task
+from neutron.openstack.common.rpc import service as rpc_service
+from neutron.openstack.common import service
 from neutron.scheduler import l3_agent_scheduler
 from neutron.openstack.common.rpc import proxy
 
@@ -64,13 +66,13 @@ class L3HealthcheckAgentNotify(proxy.RpcProxy):
     BASE_RPC_API_VERSION = '1.0'
 
     def __init__(self, topic=HEALTHCHECK_TOPIC):
-        super(L3AgentNotify, self).__init__(
+        super(L3HealthcheckAgentNotify, self).__init__(
             topic=topic, default_version=self.BASE_RPC_API_VERSION)
         self.topic = topic
 
-    def get_lock(self, context):
-        self.call(context, self.make_msg('get_lock', message=''),
-                  topic=self.topic)
+    def get_lock(self, context, host):
+        self.call(context, self.make_msg('get_lock', message={}),
+                  topic="%s.%s" % (self.topic, host))
 
 
 class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
@@ -81,11 +83,10 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
     def __init__(self):
         self.context = n_context.get_admin_context()
         self.l3_notifier = L3AgentNotify()
+        self.hc_notifier = L3HealthcheckAgentNotify()
 
-    def get_lock(self, context):
-        import pdb
-        pdb.set_trace()
-        LOG.debug("XXX LOCK")
+    def get_lock(self, context, **kwargs):
+        pass
 
     def healthcheck(self, context):
         agents = self.get_agents(self.context)
@@ -98,9 +99,11 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
                     LOG.error(_("Start migration of the agent %s"),
                               agent['host'])
 
+                    lock = self.hc_notifier.get_lock(
+                        context, cfg.CONF.L3HEALTHCHECK.peer_host)
+
                     self.update_agent(self.context, agent['id'],
-                                      {'agent': {'admin_state_up':
-                                                 False}})
+                                      {'agent': {'admin_state_up': False}})
 
                     routers = self.list_routers_on_l3_agent(self.context,
                                                             agent['id'])
@@ -119,7 +122,7 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
 
                         router_ids.append(router['id'])
 
-                    LOG.debug(_("Notify all l3 agent for routers migration"))
+                    LOG.debug(_("Notify all l3 agent for router migrations"))
                     self.l3_notifier.routers_updated(self.context,
                                                      router_ids)
 
@@ -132,16 +135,17 @@ class Manager(periodic_task.PeriodicTasks):
 
     def __init__(self, host=None):
         self.host = host
-        self.l3rescheduler = L3HealthcheckAgent()
+        self.l3_hc_agent = L3HealthcheckAgent()
         super(Manager, self).__init__()
 
     @periodic_task.periodic_task
     def healcheck(self, context):
         LOG.info("Healthcheck")
-        self.l3rescheduler.healthcheck(context)
+        self.l3_hc_agent.healthcheck(context)
 
-    def get_lock(self, context):
-        self.l3rescheduler.get_lock(context)
+    @lockutils.synchronized('l3healthcheck', 'lock')
+    def get_lock(self, context, **kwargs):
+        self.l3_hc_agent.get_lock(context, **kwargs)
 
 
 class L3healthcheckManager(Manager):
@@ -157,8 +161,10 @@ class L3healthcheck(rpc_service.Service):
         cfg.IntOpt(
             'check_interval',
             default=10,
-            help='Seconds between periodic check'
-        )
+            help='Seconds between periodic check'),
+        cfg.StrOpt(
+            'peer_server',
+            help='Peer l3healthcheck server')
     ]
 
     def __init__(self, host, topic):
@@ -172,7 +178,7 @@ class L3healthcheck(rpc_service.Service):
     def start(self):
         super(L3healthcheck, self).start()
         self.tg.add_timer(
-            cfg.CONF.check_interval,
+            cfg.CONF.L3HEALTHCHECK.check_interval,
             self.manager.run_periodic_tasks,
             None,
             None
@@ -182,14 +188,15 @@ class L3healthcheck(rpc_service.Service):
 def main():
     LOG.debug("Starting....")
     eventlet.monkey_patch()
-    server = L3healthcheck("local", "l3healthcheck")
+
+    server = L3healthcheck(socket.gethostname(), "l3healthcheck")
     service.launch(server).wait()
 
 
 if __name__ == "__main__":
-    product_name = "l3_healthcheck"
+    product_name = "l3healthcheck"
 
     cfg.CONF(project=product_name)
-    cfg.CONF.register_opts(L3healthcheck.OPTS)
+    cfg.CONF.register_opts(L3healthcheck.OPTS, "L3HEALTHCHECK")
     logging.setup(product_name)
     main()
