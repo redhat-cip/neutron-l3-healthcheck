@@ -74,7 +74,6 @@ class L3HealthcheckAgentNotify(proxy.RpcProxy):
         self.call(context, self.make_msg('get_lock', message={}),
                   topic="%s.%s" % (self.topic, host))
 
-
 class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
                          l3_agent_scheduler.ChanceScheduler,
                          l3_db.L3_NAT_db_mixin,
