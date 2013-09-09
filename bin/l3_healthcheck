@@ -86,6 +86,8 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
         self.session = db_api.get_session()
         self.host = host
 
+        self.agents = {}
+
     def lock(self, context):
         try:
             with self.session.begin(subtransactions=True):
@@ -121,6 +123,17 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
         agents = self.get_agents(self.context)
         for agent in agents:
             if (agent['agent_type'] == constants.AGENT_TYPE_L3 and
+                    not agent['admin_state_up'] and
+                    not agents_db.AgentDbMixin.is_agent_down(
+                        agent['heartbeat_timestamp']) and
+                    self.agents.get(agent['id'])):
+                tm = timeutils.utcnow() - self.agents[agent['id']]
+                if tm.seconds > cfg.CONF.L3HEALTHCHECK.validity_period:
+                    self.update_agent(self.context, agent['id'],
+                                      {'agent': {'admin_state_up': True}})
+                    del self.agents[agent['id']]
+
+            if (agent['agent_type'] == constants.AGENT_TYPE_L3 and
                     agent['admin_state_up']):
 
                 if agents_db.AgentDbMixin.is_agent_down(
@@ -134,6 +147,8 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
 
                     self.update_agent(self.context, agent['id'],
                                       {'agent': {'admin_state_up': False}})
+
+                    self.agents[agent['id']] = timeutils.utcnow()
 
                     routers = self.list_routers_on_l3_agent(self.context,
                                                             agent['id'])
@@ -187,7 +202,11 @@ class L3healthcheck(service.Service):
         cfg.IntOpt(
             'lock_validity',
             default=5,
-            help='Seconds of the lock validity')
+            help='Seconds of the lock validity'),
+        cfg.IntOpt(
+            'validity_period',
+            default=60,
+            help='Reset admin_state_up after validity period'),
     ]
 
     def __init__(self, host):
