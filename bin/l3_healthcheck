@@ -143,7 +143,7 @@ class L3HealthcheckAgent(db_base_plugin_v2.QuantumDbPluginV2,
                         LOG.debug("Reschedule router %s from agent %s",
                                   router['id'], agent['id'])
 
-                        self.schedule(self, self.context, router['id'])
+                        self.schedule(self, self.context, router)
                         LOG.debug("Router %s rescheduled", router['id'])
 
                         self.remove_router_from_l3_agent(self.context,
