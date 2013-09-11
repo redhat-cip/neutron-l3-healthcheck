@@ -1,7 +1,7 @@
 :Author: Sylvain Afchain
 :Source Code: https://github.com/enovance/neutron-l3-healthcheck
 :License: Apache
-:Version: 0.1
+:Version: 1.0
 
 ======================
 quantum-l3-healthcheck
