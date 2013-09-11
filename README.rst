@@ -26,7 +26,7 @@ Install
   rabbit_hosts = localhost
   rpc_backend = neutron.openstack.common.rpc.impl_kombu
   [database]
-  connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
+  sql_connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
   [L3HEALTHCHECK]
   check_interval = 3
 
