@@ -76,7 +76,7 @@ class L3AgentNotify(proxy.RpcProxy):
 class L3HealthcheckAgent(db_base_plugin_v2.QuantumDbPluginV2,
                          l3_agent_scheduler.ChanceScheduler,
                          l3_db.L3_NAT_db_mixin,
-                         agentschedulers_db.L3AgentSchedulerDbMixin):
+                         agentschedulers_db.AgentSchedulerDbMixin):
 
     def __init__(self, host):
         self.context = n_context.get_admin_context()
