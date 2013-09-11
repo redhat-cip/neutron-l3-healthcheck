@@ -22,13 +22,14 @@ not a distributed lock, that's why you should run it once to avoid agent errors.
 
   [DEFAULT]
   verbose = True
-  debug = True           
-  check_interval = 3
+  debug = True
   rabbit_password = password
   rabbit_hosts = localhost
   rpc_backend = neutron.openstack.common.rpc.impl_kombu
   [database]
   connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
+  [HEALTHCHECK]
+  check_interval = 3
 
 
 
