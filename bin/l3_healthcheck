@@ -73,7 +73,7 @@ class L3AgentNotify(proxy.RpcProxy):
             self._notification(context, 'routers_updated', router_ids)
 
 
-class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
+class L3HealthcheckAgent(db_base_plugin_v2.QuantumDbPluginV2,
                          l3_agent_scheduler.ChanceScheduler,
                          l3_db.L3_NAT_db_mixin,
                          agentschedulers_db.L3AgentSchedulerDbMixin):
