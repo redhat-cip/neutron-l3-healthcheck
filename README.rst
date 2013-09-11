@@ -24,7 +24,7 @@ Install
   debug = True
   rabbit_password = password
   rabbit_hosts = localhost
-  rpc_backend = neutron.openstack.common.rpc.impl_kombu
+  rpc_backend = quantum.openstack.common.rpc.impl_kombu
   [database]
   sql_connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
   [L3HEALTHCHECK]
@@ -40,4 +40,5 @@ Run the script:
     -$ python l3_healthcheck --config-file /etc/quantum/l3_healthcheck.ini 
 
 
-You can now test to shoot a L3 agent, and see that routers are rescheduled to another L3 node.
+You can now test to shoot a L3 agent, and see that routers are rescheduled to
+another L3 node.
