@@ -13,7 +13,8 @@ Check L3 agents and reschedule routers if an agent is down.
 *******
 Install
 *******
-1. Install the script on the node you want.
+1. Install the script on the node you want. You can run this script on multiple
+   nodes at the same time.
 ::
 
 2. Configure /etc/quantum/l3_healthcheck.ini file:
