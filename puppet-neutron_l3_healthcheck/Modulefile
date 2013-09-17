@@ -1,0 +1,8 @@
+name    'enovance/neutron_l3_healthcheck'
+version '0.1.0'
+source 'Apache License, Version 2.0'
+author 'eNovance'
+license 'Apache License, Version 2.0'
+summary 'neutron-l3-healthcheck module'
+description 'Install & configure neutron-l3-healthcheck'
+project_page 'https://github.com/enovance/neutron-l3-healthcheck'
