@@ -30,7 +30,19 @@ Install
   sql_connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
   [HEALTHCHECK]
   check_interval = 3
+  plugin_host =
 
+  # Script executed after rescheduling
+  # post_script =
+
+  # Seconds before an isolated agent removes routers
+  # isolated_period = 30
+
+  # Seconds of the lock validity
+  # lock_validity = 5
+
+  # Reset admin_state_up after validity period
+  # validity_period = 60
 
 
 *****
@@ -38,7 +50,7 @@ Usage
 *****
 
 Run the script:
-    -$ python l3_healthcheck --config-file /etc/neutron/l3_healthcheck.ini 
+    -$ python l3_healthcheck --config-file /etc/neutron/l3_healthcheck.ini
 
 
 You can now test to shoot a L3 agent, and see that routers are rescheduled to another L3 node.
