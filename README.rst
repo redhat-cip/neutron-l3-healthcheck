@@ -1,7 +1,7 @@
 :Author: Sylvain Afchain
 :Source Code: https://github.com/enovance/neutron-l3-healthcheck
 :License: Apache
-:Version: 1.0
+:Version: 1.2
 
 ======================
 neutron-l3-healthcheck
@@ -26,9 +26,11 @@ Install
   rabbit_password = password
   rabbit_hosts = localhost
   rpc_backend = neutron.openstack.common.rpc.impl_kombu
+
   [database]
   sql_connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
-  [HEALTHCHECK]
+
+  [L3HEALTHCHECK]
   check_interval = 3
   plugin_host =
 

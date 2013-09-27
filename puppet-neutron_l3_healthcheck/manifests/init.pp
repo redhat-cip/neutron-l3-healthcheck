@@ -46,6 +46,25 @@
 #   (optional) array of rabbitmq servers for HA
 #   Defaults to empty
 #
+# [*plugin_host*]
+#   (required) Host to ping for checking network connectivity
+#
+# [*post_script*]
+#   (optional) Script executed after rescheduling
+#   Default to empty
+#
+# [*isolated_period*]
+#   (optional) Seconds before an isolated agent removes routers
+#   Default to 30.
+#
+# [*lock_validity*]
+#   (optional) Seconds of the lock validity
+#   Default to 5.
+#
+# [*validity_period*]
+#   (optional) Reset admin_state_up after validity period
+#   Default to 60.
+#
 # === Examples
 #
 #  class { neutron_l3_healthcheck:
@@ -54,7 +73,8 @@
 #
 # === Authors
 #
-# François Charlier <francois.charlier@enovance.com
+# François Charlier <francois.charlier@enovance.com>
+# Emilien Macchi <emilien.macchi@enovance.com>
 #
 # === Copyright
 #
@@ -78,6 +98,11 @@ class neutron_l3_healthcheck (
   $verbose             = false,
   $debug               = false,
   $check_interval      = 10,
+  $plugin_host         = undef,
+  $post_script         = undef,
+  $isolated_period     = '30',
+  $lock_validity       = '5',
+  $validity_period     = '60',
   $rabbit_password     = false,
   $rabbit_hosts        = ['localhost'],
   $rabbit_user         = 'guest',
@@ -90,16 +115,29 @@ class neutron_l3_healthcheck (
     fail('When rpc_backend is rabbitmq, you must set rabbit password')
   }
 
+  if ! $plugin_host {
+    fail('plugin_host is missing.')
+  }
+
+  if $post_script {
+    neutron_l3_healthcheck_config {
+      'HEALTHCHECK/post_script': value => $post_script;
+    }
+
   neutron_l3_healthcheck_config {
-    'DEFAULT/verbose':             value => $verbose;
-    'DEFAULT/debug':               value => $debug;
-    'DEFAULT/check_interval':      value => $check_interval;
-    'DEFAULT/rabbit_password':     value => $rabbit_password;
-    'DEFAULT/rabbit_hosts':        value => $rabbit_hosts;
-    'DEFAULT/rabbit_user':         value => $rabbit_user;
-    'DEFAULT/rabbit_virtual_host': value => $rabbit_virtual_host;
-    'DEFAULT/rpc_backend':         value => "neutron.openstack.common.rpc.${rpc_backend}";
-    'database/connection':         value => $db_connection;
+    'DEFAULT/verbose':               value => $verbose;
+    'DEFAULT/debug':                 value => $debug;
+    'DEFAULT/rabbit_password':       value => $rabbit_password;
+    'DEFAULT/rabbit_hosts':          value => $rabbit_hosts;
+    'DEFAULT/rabbit_user':           value => $rabbit_user;
+    'DEFAULT/rabbit_virtual_host':   value => $rabbit_virtual_host;
+    'DEFAULT/rpc_backend':           value => "neutron.openstack.common.rpc.${rpc_backend}";
+    'database/connection':           value => $db_connection;
+    'L3HEALTHCHECK/check_interval':  value => $check_interval;
+    'L3HEALTHCHECK/plugin_host':     value => $plugin_host;
+    'L3HEALTHCHECK/isolated_period': value => $isolated_period;
+    'L3HEALTHCHECK/lock_validity':   value => $lock_validity;
+    'L3HEALTHCHECK/validity_period': value => $validity_period;
   }
 
   package { 'neutron-l3-healthcheck':
