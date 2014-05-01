@@ -37,14 +37,13 @@
 #   Defaults to impl_kombu (rabbitmq)
 #
 # [*rabbit_password*]
-# [*rabbit_host*]
 # [*rabbit_port*]
 # [*rabbit_user*]
 #   (optional) Various rabbitmq settings
 #
 # [*rabbit_hosts*]
 #   (optional) array of rabbitmq servers for HA
-#   Defaults to empty
+#   Defaults to localhost
 #
 # [*plugin_host*]
 #   (required) Host to ping for checking network connectivity
