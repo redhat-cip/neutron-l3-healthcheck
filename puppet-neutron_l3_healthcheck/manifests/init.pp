@@ -123,6 +123,7 @@ class neutron_l3_healthcheck (
     neutron_l3_healthcheck_config {
       'HEALTHCHECK/post_script': value => $post_script;
     }
+  }
 
   neutron_l3_healthcheck_config {
     'DEFAULT/verbose':               value => $verbose;
