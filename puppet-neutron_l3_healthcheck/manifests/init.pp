@@ -37,14 +37,13 @@
 #   Defaults to impl_kombu (rabbitmq)
 #
 # [*rabbit_password*]
-# [*rabbit_host*]
 # [*rabbit_port*]
 # [*rabbit_user*]
 #   (optional) Various rabbitmq settings
 #
 # [*rabbit_hosts*]
 #   (optional) array of rabbitmq servers for HA
-#   Defaults to empty
+#   Defaults to localhost
 #
 # [*plugin_host*]
 #   (required) Host to ping for checking network connectivity
@@ -123,6 +122,7 @@ class neutron_l3_healthcheck (
     neutron_l3_healthcheck_config {
       'HEALTHCHECK/post_script': value => $post_script;
     }
+  }
 
   neutron_l3_healthcheck_config {
     'DEFAULT/verbose':               value => $verbose;
