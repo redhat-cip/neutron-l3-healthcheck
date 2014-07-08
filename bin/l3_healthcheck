@@ -117,6 +117,8 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
                     "'%s'") % self.conf.interface_driver
             raise SystemExit(msg)
 
+        self.agents = {}
+
     def lock(self, context):
         try:
             with self.session.begin(subtransactions=True):
