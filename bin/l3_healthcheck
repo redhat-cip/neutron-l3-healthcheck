@@ -117,8 +117,6 @@ class L3HealthcheckAgent(db_base_plugin_v2.NeutronDbPluginV2,
                     "'%s'") % self.conf.interface_driver
             raise SystemExit(msg)
 
-        self.agents = {}
-
     def lock(self, context):
         try:
             with self.session.begin(subtransactions=True):
@@ -327,6 +325,7 @@ if __name__ == "__main__":
 
     cfg.CONF(project=product_name)
     cfg.CONF.register_opts(L3healthcheck.OPTS, "L3HEALTHCHECK")
+    cfg.CONF.register_opts(config.INTERFACE_DRIVER_OPTS)
     cfg.CONF.register_opts(l3_agent.L3NATAgent.OPTS)
     cfg.CONF.register_opts(interface.OPTS)
     cfg.CONF.register_opts(external_process.OPTS)
