@@ -23,9 +23,11 @@ Install
   [DEFAULT]
   verbose = True
   debug = True
+  rabbit_user = neutron
   rabbit_password = password
   rabbit_hosts = localhost
   rpc_backend = neutron.openstack.common.rpc.impl_kombu
+  interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
 
   [database]
   sql_connection = mysql://root:password@localhost/ovs_neutron?charset=utf8
